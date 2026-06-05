@@ -27,4 +27,14 @@ class Bill extends Model
     {
         return $this->belongsTo(User::class, 'payer_id');
     }
+
+    public function items()
+    {
+        return $this->hasMany(BillItem::class);
+    }
+
+    public function splits()
+    {
+        return $this->hasMany(BillSplit::class);
+    }
 }

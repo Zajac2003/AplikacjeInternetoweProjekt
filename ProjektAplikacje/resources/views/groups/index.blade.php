@@ -22,6 +22,9 @@
                         <thead class="bg-gray-50">
                             <tr>
                                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nazwa Grupy</th>
+                                @if(auth()->user()->isAdmin())
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Wlasciciel</th>
+                                @endif
                                 <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Akcje</th>
                             </tr>
                         </thead>
@@ -31,6 +34,11 @@
                                     <td class="px-6 py-4 whitespace-nowrap text-sm font-bold text-gray-900">
                                         {{ $group->name }}
                                     </td>
+                                    @if(auth()->user()->isAdmin())
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                                            {{ $group->owner->name ?? '-' }}
+                                        </td>
+                                    @endif
                                     <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-2">
                                         <a href="{{ route('groups.show', $group) }}" class="text-indigo-600 hover:text-indigo-900 bg-indigo-50 px-3 py-1 rounded-md">Otwórz &rarr;</a>
 

@@ -58,20 +58,30 @@ class DatabaseSeeder extends Seeder
             'quantity' => 1
         ]);
 
-        $this->command->info('=== TESTY LOGIKI BAZODANOWEJ ===');
+        if (DB::getDriverName() === 'mysql') {
+            $group = \App\Models\Group::find($groupId);
+            $group->update(['total_amount' => 600.00]);
 
-        // Test funkcji składowej
-        $balance = DB::select("SELECT get_user_net_balance(?, ?) AS balance", [$krystian->id, $groupId])[0]->balance;
-        $this->command->comment("Saldo Krystiana w grupie (Wyliczone przez FUNKCJE SQL): " . $balance . " zl");
+            $this->command->info('=== TESTY LOGIKI BAZODANOWEJ (MySQL) ===');
 
-        // Test Triggera Walidacyjnego
-        try {
-            DB::table('bill_item_user')->insert([
-                'bill_item_id' => $itemId,
-                'user_id' => $haker->id // Haker nie jest w grupie, trigger powinien go zablokować
-            ]);
-        } catch (\Exception $e) {
-            $this->command->error("TRIGGER poprawnie zablokowal osobe spoza grupy! Blad: " . $e->getMessage());
+            $balance = DB::select('SELECT get_user_net_balance(?, ?) AS balance', [$krystian->id, $groupId])[0]->balance;
+            $this->command->comment('Saldo Krystiana (funkcja SQL): ' . $balance . ' zl');
+
+            try {
+                DB::table('bill_item_user')->insert([
+                    'bill_item_id' => $itemId,
+                    'user_id' => $haker->id,
+                ]);
+            } catch (\Exception $e) {
+                $this->command->error('TRIGGER zablokowal osobe spoza grupy: ' . $e->getMessage());
+            }
+        } else {
+            DB::table('groups')->where('id', $groupId)->update(['total_amount' => 600.00]);
+            $this->command->warn('SQLite: triggery i funkcja SQL dostepne po przejsciu na MySQL.');
         }
+
+        $this->command->info('Konta demo (haslo: password):');
+        $this->command->line('  admin: krystian@example.com');
+        $this->command->line('  user:  adam@example.com, ewa@example.com');
     }
 }

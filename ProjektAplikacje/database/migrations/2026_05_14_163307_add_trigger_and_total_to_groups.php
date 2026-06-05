@@ -7,6 +7,10 @@ return new class extends Migration
 {
     public function up(): void
     {
+        if (DB::getDriverName() !== 'mysql') {
+            return;
+        }
+
         // 1. TRIGgery AUTOMATYZACJI: Aktualizacja salda grupy (Dodanie, Edycja, Usunięcie)
         DB::unprepared("
             CREATE TRIGGER update_group_total_after_bill_insert AFTER INSERT ON bills
@@ -81,6 +85,10 @@ return new class extends Migration
 
     public function down(): void
     {
+        if (DB::getDriverName() !== 'mysql') {
+            return;
+        }
+
         DB::unprepared("DROP TRIGGER IF EXISTS update_group_total_after_bill_insert");
         DB::unprepared("DROP TRIGGER IF EXISTS update_group_total_after_bill_update");
         DB::unprepared("DROP TRIGGER IF EXISTS update_group_total_after_bill_delete");

@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\DB;
 
 class Group extends Model
 {
@@ -21,29 +22,40 @@ class Group extends Model
         return $this->hasMany(Bill::class);
     }
 
+    public function owner()
+    {
+        return $this->belongsTo(User::class, 'owner_id');
+    }
+
     /**
-     * ZŁOŻONA FUNKCJA SKŁADOWA: Obliczanie salda każdego członka.
-     * To jest logika, która "rozlicza" wycieczkę.
+     * Algorytm bilansowania: zaplacone - naleznosci (bill_splits).
+     * Na MySQL korzysta z funkcji skladowej get_user_net_balance().
      */
     public function getBalances()
     {
         $members = $this->users;
-        $totalSpent = $this->bills->sum('amount'); // Suma wszystkich rachunków
-        $memberCount = $members->count();
-
-        if ($memberCount === 0) return [];
-
-        $fairShare = $totalSpent / $memberCount; // Tyle sprawiedliwie przypada na osobę
         $balances = [];
 
         foreach ($members as $user) {
-            // Ile dany użytkownik faktycznie wyłożył z portfela
-            $userPaid = $this->bills->where('payer_id', $user->id)->sum('amount');
+            $paid = $this->bills->where('payer_id', $user->id)->sum('amount');
+            $owed = BillSplit::whereIn('bill_id', $this->bills->pluck('id'))
+                ->where('user_id', $user->id)
+                ->sum('amount');
+
+            if (DB::getDriverName() === 'mysql') {
+                $balance = (float) DB::selectOne(
+                    'SELECT get_user_net_balance(?, ?) AS balance',
+                    [$user->id, $this->id]
+                )->balance;
+            } else {
+                $balance = $paid - $owed;
+            }
 
             $balances[] = [
                 'user' => $user,
-                'paid' => $userPaid,
-                'balance' => $userPaid - $fairShare // Wynik dodatni = ktoś ma mu oddać, ujemny = on musi oddać
+                'paid' => $paid,
+                'owed' => $owed,
+                'balance' => $balance,
             ];
         }
 
